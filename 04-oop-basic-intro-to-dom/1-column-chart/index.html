@@ -31,7 +31,7 @@
         data: salesData,
         label: 'sales',
         value: 243437,
-        formatHeading: data => `$${data}`
+        formatHeading: data => `$${new Intl.NumberFormat("en").format(data)}`
       });
 
       const customersChart = new ColumnChart({
