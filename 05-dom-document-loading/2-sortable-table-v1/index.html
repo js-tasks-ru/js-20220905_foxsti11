@@ -38,7 +38,13 @@
       template: (data = []) => {
         return `
           <div class="sortable-table__cell">
-            <img class="sortable-table-image" alt="Image" src="${data[0]?.url || 'https://via.placeholder.com/32'}">
+            <img
+              class="sortable-table-image"
+              alt="Image"
+              src="${data[0]?.url || 'https://via.placeholder.com/32'}"
+              onerror="this.onerror=null;
+                this.src='https://via.placeholder.com/32';"
+            >
           </div>
         `;
       }
