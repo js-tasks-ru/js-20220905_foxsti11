@@ -13,6 +13,7 @@ export default class DoubleSlider {
     this.max = max;
     this.selected = selected;
     this.formatValue = formatValue;
+    this.subtractionRange = max - min;
 
     this.render();
     this.initEventListeners();
@@ -20,7 +21,7 @@ export default class DoubleSlider {
 
   get templateHTMLComponent() {
     return `<div class="range-slider">
-    <span data-element="from">${this.formatValue(this.selected.from)}</span>
+    <span data-element="from"></span>
     <div data-element="inner" class="range-slider__inner">
       <span class="range-slider__progress" data-element="progress" style="left: 0; right: 0">
       </span>
@@ -29,7 +30,7 @@ export default class DoubleSlider {
       <span class="range-slider__thumb-right" data-element="thumbRight" style="right: 0">
       </span>
     </div>
-    <span data-element="to">${this.formatValue(this.selected.to)}</span>
+    <span data-element="to"></span>
   </div>`;
   }
 
@@ -38,10 +39,18 @@ export default class DoubleSlider {
     this.element.innerHTML = this.templateHTMLComponent;
     this.element = this.element.firstElementChild;
     this.subElements = this.getSubElements(this.element);
+
+    this.update();
   }
 
   update() {
-    const { from, to } = this.subElements;
+    const { thumbLeft, thumbRight, progress, from, to } = this.subElements;
+
+    thumbLeft.style.left = this.leftPercents + "%";
+    thumbRight.style.right = this.rightPercents + "%";
+    progress.style.left = this.leftPercents + "%";
+    progress.style.right = this.rightPercents + "%";
+
     from.innerHTML = this.formatValue(this.selected.from.toFixed(0));
     to.innerHTML = this.formatValue(this.selected.to.toFixed(0));
   }
@@ -69,65 +78,24 @@ export default class DoubleSlider {
 
   onThumbPointerMoveHandler = (e) => {
     e.preventDefault();
+    const { inner, thumbLeft, thumbRight } = this.subElements;
+    const { left: innerBoundingLeft, width: innerBoundingWidth } =
+      inner.getBoundingClientRect();
 
-    const { inner, progress, thumbLeft, thumbRight } = this.subElements;
-    const { right: fromThumbBoundingRight } = thumbLeft.getBoundingClientRect();
-    const { left: toThumbBoundingLeft } = thumbRight.getBoundingClientRect();
-    const {
-      left: innerBoundingLeft,
-      right: innerBoundingRight,
-      width: innerBoundingWidth,
-    } = inner.getBoundingClientRect();
-    const directions = {
-      left: "left",
-      right: "right",
-    };
+    const offsetX = Math.max(e.clientX - innerBoundingLeft, 0);
+    const newValue = Math.round(
+      (offsetX / innerBoundingWidth) * this.subtractionRange + this.min
+    );
 
-    let currentDirection;
-    let currentThumbCoordinateOnRange;
-
-    switch (this.dragging) {
-      case thumbLeft:
-        {
-          currentDirection = directions.left;
-          if (
-            e.clientX < toThumbBoundingLeft &&
-            e.clientX > innerBoundingLeft
-          ) {
-            currentThumbCoordinateOnRange = e.clientX - innerBoundingLeft;
-          }
-        }
-        break;
-      case thumbRight:
-        {
-          currentDirection = directions.right;
-          if (
-            e.clientX > fromThumbBoundingRight &&
-            e.clientX < innerBoundingRight
-          ) {
-            currentThumbCoordinateOnRange = e.clientX - innerBoundingLeft;
-          }
-        }
-        break;
+    if (this.dragging === thumbLeft) {
+      this.selected.from = Math.min(newValue, this.selected.to);
     }
-
-    const changedX = (
-      (currentThumbCoordinateOnRange / innerBoundingWidth) *
-      100
-    ).toFixed(2);
-
-    if (currentDirection === "right") {
-      this.dragging.style.right = progress.style.right = 100 - changedX + "%";
+    if (this.dragging === thumbRight) {
+      this.selected.to = Math.min(
+        Math.max(newValue, this.selected.from),
+        this.max
+      );
     }
-    if (currentDirection === "left") {
-      this.dragging.style.left = progress.style.left = changedX + "%";
-    }
-
-    const subtractionMaxMin = this.max - this.min;
-    this.selected.from =
-      this.min + parseInt(thumbLeft.style.left) * 0.01 * subtractionMaxMin;
-    this.selected.to =
-      this.max - parseInt(thumbRight.style.right) * 0.01 * subtractionMaxMin;
 
     this.update();
   };
@@ -136,7 +104,7 @@ export default class DoubleSlider {
     this.element.classList.remove("range-slider_dragging");
 
     document.removeEventListener("pointermove", this.onThumbPointerMoveHandler);
-    /* document.removeEventListener("pointerup", this.onThumbPointerUpHandler); */
+    document.removeEventListener("pointerup", this.onThumbPointerUpHandler);
 
     this.element.dispatchEvent(
       new CustomEvent("range-select", {
@@ -160,6 +128,14 @@ export default class DoubleSlider {
     }
 
     return result;
+  }
+
+  get leftPercents() {
+    return ((this.selected.from - this.min) / this.subtractionRange) * 100;
+  }
+
+  get rightPercents() {
+    return ((this.max - this.selected.to) / this.subtractionRange) * 100;
   }
 
   remove() {
