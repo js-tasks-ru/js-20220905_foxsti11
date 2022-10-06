@@ -64,7 +64,7 @@ export default class ProductForm {
   }
 
   getTemplateImageList(data = []) {
-    return data?.map((item) => {
+    return data.map((item) => {
       const element = document.createElement("li");
       element.classList.add("products-edit__imagelist-item");
 
