@@ -14,14 +14,18 @@ export default class RangePicker {
   }
 
   constructor({ from = new Date(), to = new Date(from.getDate() + 7) } = {}) {
-    this.range = { from: from, to: to };
+    this.range = { from, to };
     this.currentDateShow = new Date(from);
     this.render();
   }
 
   getDaysOfWeek() {
+    const tempDate = new Date();
+    tempDate.setDate(tempDate.getDate() - tempDate.getDay() + 1);
+
     const daysOfWeek = new Array(7).fill(0).map((item, index) => {
-      const weekday = new Date(2023, 4, 1 + index).toLocaleString("ru", {
+      tempDate.setDate(tempDate.getDate() + index);
+      const weekday = tempDate.toLocaleString("ru", {
         weekday: "short",
       });
       return weekday[0].toUpperCase() + weekday.slice(1);
